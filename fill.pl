@@ -11,17 +11,18 @@ my $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
 if ($do_create) {
 	print "Creating table\n";
 	$db->do('CREATE TABLE fixes(id INTEGER PRIMARY KEY, ' .
-		'sha TEXT NOT NULL, prod TEXT NOT NULL, ' .
-		'done INTEGER DEFAULT 0 NOT NULL, unique(sha, prod)) '.
-		'STRICT;') or die "cannot create table";
+		'sha TEXT NOT NULL, prod TEXT NOT NULL, '.
+		'via TEXT, done INTEGER DEFAULT 0 NOT NULL, ' .
+		'unique(sha, prod)) STRICT;') or
+		die "cannot create table";
 }
 
 while (<>) {
 	last if /^={10,}/;
 }
 
-my $ins = $db->prepare('INSERT INTO fixes(sha, prod)' .
-	'VALUES (?, ?)') or die "cannot prepare";
+my $ins = $db->prepare('INSERT INTO fixes(sha, prod, via)' .
+	'VALUES (?, ?, ?)') or die "cannot prepare";
 
 # make sure the data are a string
 
@@ -33,11 +34,12 @@ while (<>) {
 
 	while (<>) {
 		s/\R//;
-		last unless /^\s+Considered for (\S+)/;
+		last unless /^\s+Considered for (\S+)(?: via (\S+))?/;
 		my $prod = $1;
+		my $via = $2;
 
 		print "\tprod=$prod\n";
-		$ins->execute($sha, $prod);
+		$ins->execute($sha, $prod, $via);
 	}
 }
 

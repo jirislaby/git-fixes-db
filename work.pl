@@ -30,6 +30,7 @@ $sel->execute($prod);
 
 while (my $row = $sel->fetchrow_hashref) {
 	my $sha = $$row{sha};
+	my $via = $$row{via};
 
 	system('clear');
 
@@ -37,6 +38,9 @@ while (my $row = $sel->fetchrow_hashref) {
 
 	$repo->command_noisy('show', '--color', $sha);
 
+	if (defined $via) {
+		print colored('VIA:', 'bright_green'), " $via\n";
+	}
 	print colored('blacklist:', 'bright_green'), " $sha # \n";
 	print colored('susegen', 'bright_green'), " -r 'git-fixes' ~ -1 $sha\n";
 	print colored('Mark as done? [y/N/q] ', 'bold bright_red');
