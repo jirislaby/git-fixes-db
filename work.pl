@@ -4,6 +4,10 @@ use DBI;
 use Git;
 use Term::ANSIColor qw(colored);
 
+my %blacklist = (
+	qr@^(arch/x86/platform/olpc/|arch/x86/kernel/cpu/cyrix.c)@ => 'x86-32 unsupported',
+);
+
 my $db_file = 'git-fixes.db';
 my $git_repo = '/home/latest/linux';
 my $db = undef;
@@ -36,13 +40,30 @@ while (my $row = $sel->fetchrow_hashref) {
 
 	$sha = $repo->command_oneline('rev-parse', $sha);
 
-	$repo->command_noisy('show', '--color', $sha);
-
-	if (defined $via) {
-		print colored('VIA:', 'bright_green'), " $via\n";
+	my @files = $repo->command('show', '--pretty=format:', '--name-only',
+		$sha);
+	my $match;
+	FI: for my $file (@files) {
+		for my $bl (keys %blacklist) {
+			if ($file =~ $bl) {
+				last FI if (defined $match && $match != $blacklist{$bl});
+				$match = $blacklist{$bl};
+			}
+		}
 	}
-	print colored('blacklist:', 'bright_green'), " $sha # \n";
-	print colored('susegen', 'bright_green'), " -r 'git-fixes' ~ -1 $sha\n";
+
+	if (defined $match) {
+		print colored("blacklist:\n", 'bright_green'), "$sha # $match\n";
+	} else {
+		$repo->command_noisy('show', '--color', $sha);
+
+		if (defined $via) {
+			print colored('VIA:', 'bright_green'), " $via\n";
+		}
+		print colored('blacklist:', 'bright_green'), " $sha # \n";
+		print colored('susegen', 'bright_green'), " -r 'git-fixes' ~ -1 $sha\n";
+	}
+
 	print colored('Mark as done? [y/N/q] ', 'bold bright_red');
 	my $done = uc(<>);
 	chomp($done);
