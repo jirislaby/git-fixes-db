@@ -63,7 +63,7 @@ while (<>) {
 
 	while (<>) {
 		s/\R//;
-		last unless /^\s+Considered for (\S+)(?: via (\S+))?/;
+		last unless /^\s+Considered for (\S+)(?: (?:via|as fix for) (\S+))?/;
 		my $prod = $1;
 		my $via = $2;
 
