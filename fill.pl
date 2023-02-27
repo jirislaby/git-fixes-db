@@ -53,6 +53,7 @@ for my $file (@ARGV) {
 		'LEFT JOIN via ON via.via=? ' .
 		'WHERE subsys.subsys=? AND prod.prod=?;') or
 		die "cannot prepare fixes";
+	$ins->{PrintError} = 0;
 	my $ins_prod = $db->prepare('INSERT OR IGNORE INTO prod(prod) VALUES (?);') or
 		die "cannot prepare prod";
 	my $ins_via = $db->prepare('INSERT OR IGNORE INTO via(via) VALUES (?);') or
