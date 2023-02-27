@@ -28,54 +28,59 @@ $db->do('CREATE TABLE IF NOT EXISTS via(id INTEGER PRIMARY KEY, ' .
 	'via TEXT NOT NULL UNIQUE) STRICT;') or
 	die "cannot create table via";
 
-my $subsys;
+for my $file (@ARGV) {
+	my $subsys;
 
-while (<>) {
-	s/\R//;
-	last if /^={10,}/;
-	$subsys = $1 if (/^Subject: .* Pending Fixes for (.*)$/);
-}
+	open(my $fh, "<", $file) or die "cannot open $file";
 
-die "no subsystem?" unless defined $subsys;
-
-print "$subsys\n";
-
-my $ins = $db->prepare('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);') or
-	die "cannot prepare subsys";
-
-$ins->execute($subsys);
-
-$ins = $db->prepare('INSERT INTO fixes(sha, via, subsys, prod) ' .
-	'SELECT ?, via.id, subsys.id, prod.id FROM prod, subsys ' .
-	'LEFT JOIN via ON via.via=? ' .
-	'WHERE subsys.subsys=? AND prod.prod=?;') or
-	die "cannot prepare fixes";
-my $ins_prod = $db->prepare('INSERT OR IGNORE INTO prod(prod) VALUES (?);') or
-	die "cannot prepare prod";
-my $ins_via = $db->prepare('INSERT OR IGNORE INTO via(via) VALUES (?);') or
-	die "cannot prepare via";
-
-while (<>) {
-	s/\R//;
-	next unless /^([a-f0-9]{12})/;
-	my $sha = $1;
-	print "sha=$sha\n";
-
-	while (<>) {
+	while (<$fh>) {
 		s/\R//;
-		last unless /^\s+Considered for (\S+)(?: (?:via|as fix for) (\S+))?/;
-		my $prod = $1;
-		my $via = $2;
+		last if /^={10,}/;
+		$subsys = $1 if (/^Subject: .* Pending Fixes for (.*)$/);
+	}
 
-		$ins_prod->execute($prod);
-		$ins_via->execute($via) if (defined $via);
+	die "no subsystem in $file?" unless defined $subsys;
 
-		print "\tprod=$prod\n";
-		if (!$ins->execute($sha, $via, $subsys, $prod) &&
-				$ins->errstr !~ /UNIQUE constraint failed/) {
-			die "cannot instert: " . $ins->errstr;
+	print "\n==== $subsys ====\n";
+
+	my $ins = $db->prepare('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);') or
+		die "cannot prepare subsys";
+
+	$ins->execute($subsys);
+
+	$ins = $db->prepare('INSERT INTO fixes(sha, via, subsys, prod) ' .
+		'SELECT ?, via.id, subsys.id, prod.id FROM prod, subsys ' .
+		'LEFT JOIN via ON via.via=? ' .
+		'WHERE subsys.subsys=? AND prod.prod=?;') or
+		die "cannot prepare fixes";
+	my $ins_prod = $db->prepare('INSERT OR IGNORE INTO prod(prod) VALUES (?);') or
+		die "cannot prepare prod";
+	my $ins_via = $db->prepare('INSERT OR IGNORE INTO via(via) VALUES (?);') or
+		die "cannot prepare via";
+
+	while (<$fh>) {
+		s/\R//;
+		next unless /^([a-f0-9]{12})/;
+		my $sha = $1;
+		print "sha=$sha\n";
+
+		while (<$fh>) {
+			s/\R//;
+			last unless /^\s+Considered for (\S+)(?: (?:via|as fix for) (\S+))?/;
+			my $prod = $1;
+			my $via = $2;
+
+			$ins_prod->execute($prod);
+			$ins_via->execute($via) if (defined $via);
+
+			print "\tprod=$prod\n";
+			if (!$ins->execute($sha, $via, $subsys, $prod) &&
+					$ins->errstr !~ /UNIQUE constraint failed/) {
+				die "cannot insert: " . $ins->errstr;
+			}
 		}
 	}
+	close $fh;
 }
 
 END {
