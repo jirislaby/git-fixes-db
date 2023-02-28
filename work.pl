@@ -70,7 +70,7 @@ my $sel = $db->prepare('SELECT fixes.id, fixes.sha, via.via ' .
 $sel->execute($subsys, $prod);
 
 sub do_oneline() {
-	while (my $shas = $sel->fetchall_arrayref({ sha => 1 }, 100)) {
+	while (my $shas = $sel->fetchall_arrayref({ sha => 1 }, 500)) {
 		last unless scalar @{$shas};
 		$repo->command_noisy('show', '--color', '--oneline', '-s', map { $$_{sha} } @{$shas});
 	}
