@@ -9,6 +9,19 @@ my %blacklist = (
 	qr@^(arch/x86/platform/olpc/|arch/x86/kernel/cpu/cyrix.c)@ => 'x86-32 unsupported',
 );
 
+my %blacklist_prod = (
+	'SLE12-SP5' => {
+		qr@drivers/pci/controller/pcie-mediatek.c@ => '637cfacae96f not present',
+		qr@drivers/pci/controller/pcie-rcar.c@ => 'CONFIG_PCIE_RCAR=n',
+		qr@drivers/pci/controller/pcie-rockchip-host.c@ => 'CONFIG_PCIE_ROCKCHIP=n',
+		qr@drivers/pci/controller/pcie-xilinx.c@ => 'CONFIG_PCIE_XILINX=n',
+		qr@drivers/pci/controller/dwc/pci-dra7xx.c@ => 'CONFIG_PCI_DRA7XX=n',
+		qr@drivers/pci/controller/dwc/pci-exynos.c@ => 'CONFIG_PCI_EXYNOS=n',
+		qr@drivers/pci/controller/dwc/pci-imx6.c@ => 'CONFIG_PCI_IMX6=n',
+		qr@drivers/pci/controller/dwc/pci-keystone.c@ => 'CONFIG_PCI_KEYSTONE=n',
+	},
+);
+
 my $oneline = 0;
 my $db_file = 'git-fixes.db';
 my $git_repo = '/home/latest/linux';
@@ -82,10 +95,12 @@ sub match_blacklist($) {
 	my @files = $repo->command('show', '--pretty=format:', '--name-only',
 		$sha);
 	for my $file (@files) {
-		for my $bl (keys %blacklist) {
-			if ($file =~ $bl) {
-				return undef if (defined $match && $match != $blacklist{$bl});
-				$match = $blacklist{$bl};
+		for my $blh (\%blacklist, $blacklist_prod{$prod}) {
+			for my $bl (keys %{$blh}) {
+				if ($file =~ $bl) {
+					return undef if (defined $match && $match != $$blh{$bl});
+					$match = $$blh{$bl};
+				}
 			}
 		}
 	}
