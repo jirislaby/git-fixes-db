@@ -73,8 +73,10 @@ my $prod = shift @ARGV;
 $SIG{INT} = sub { exit 1; };
 $SIG{TERM} = sub { exit 1; };
 
-my $sel = $db->prepare('SELECT fixes.id, fixes.sha, via.via ' .
-	'FROM fixes LEFT JOIN via ON fixes.via = via.id ' .
+my $sel = $db->prepare('SELECT fixes.id, shas.sha, via.via ' .
+	'FROM fixes ' .
+	'LEFT JOIN via ON fixes.via = via.id ' .
+	'LEFT JOIN shas ON fixes.sha = shas.id ' .
 	'WHERE fixes.subsys = (SELECT id FROM subsys WHERE subsys = ?) AND ' .
 		'fixes.prod = (SELECT id FROM prod WHERE prod = ?) AND ' .
 		'done != 1 ' .

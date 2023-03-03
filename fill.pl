@@ -10,23 +10,26 @@ my $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
 $db->do('PRAGMA foreign_keys = ON;') or
 	die "cannot enable foreign keys";
 
-$db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
-	'sha TEXT NOT NULL, ' .
-	'done INTEGER DEFAULT 0 NOT NULL, ' .
-	'subsys INTEGER NOT NULL REFERENCES subsys(id), ' .
-	'prod INTEGER NOT NULL REFERENCES prod(id), ' .
-	'via INTEGER REFERENCES via(id), ' .
-	'unique(sha, prod)) STRICT;') or
-	die "cannot create table fixes";
 $db->do('CREATE TABLE IF NOT EXISTS prod(id INTEGER PRIMARY KEY, ' .
 	'prod TEXT NOT NULL UNIQUE) STRICT;') or
 	die "cannot create table fixes";
+$db->do('CREATE TABLE IF NOT EXISTS shas(id INTEGER PRIMARY KEY, ' .
+	'sha TEXT NOT NULL UNIQUE) STRICT; ') or
+	die "cannot create table shas";
 $db->do('CREATE TABLE IF NOT EXISTS subsys(id INTEGER PRIMARY KEY, ' .
 	'subsys TEXT NOT NULL UNIQUE) STRICT;') or
 	die "cannot create table subsys";
 $db->do('CREATE TABLE IF NOT EXISTS via(id INTEGER PRIMARY KEY, ' .
 	'via TEXT NOT NULL UNIQUE) STRICT;') or
 	die "cannot create table via";
+$db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
+	'sha INTEGER NOT NULL REFERENCES shas(id), ' .
+	'done INTEGER DEFAULT 0 NOT NULL, ' .
+	'subsys INTEGER NOT NULL REFERENCES subsys(id), ' .
+	'prod INTEGER NOT NULL REFERENCES prod(id), ' .
+	'via INTEGER REFERENCES via(id), ' .
+	'UNIQUE(sha, prod)) STRICT;') or
+	die "cannot create table fixes";
 
 for my $file (@ARGV) {
 	my $subsys;
@@ -49,13 +52,15 @@ for my $file (@ARGV) {
 	$ins->execute($subsys);
 
 	$ins = $db->prepare('INSERT INTO fixes(sha, via, subsys, prod) ' .
-		'SELECT ?, via.id, subsys.id, prod.id FROM prod, subsys ' .
+		'SELECT shas.id, via.id, subsys.id, prod.id FROM shas, prod, subsys ' .
 		'LEFT JOIN via ON via.via=? ' .
-		'WHERE subsys.subsys=? AND prod.prod=?;') or
+		'WHERE shas.sha=? AND subsys.subsys=? AND prod.prod=?;') or
 		die "cannot prepare fixes";
 	$ins->{PrintError} = 0;
 	my $ins_prod = $db->prepare('INSERT OR IGNORE INTO prod(prod) VALUES (?);') or
 		die "cannot prepare prod";
+	my $ins_sha = $db->prepare('INSERT OR IGNORE INTO shas(sha) VALUES (?);') or
+		die "cannot prepare sha";
 	my $ins_via = $db->prepare('INSERT OR IGNORE INTO via(via) VALUES (?);') or
 		die "cannot prepare via";
 
@@ -64,6 +69,7 @@ for my $file (@ARGV) {
 		next unless /^([a-f0-9]{12})/;
 		my $sha = $1;
 		print "sha=$sha\n";
+		$ins_sha->execute($sha);
 
 		while (<$fh>) {
 			s/\R//;
