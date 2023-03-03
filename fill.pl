@@ -1,9 +1,16 @@
 #!/usr/bin/perl -w
 use strict;
 use DBI qw(:sql_types);
+use Getopt::Long;
 
 my $db_file = 'git-fixes.db';
-my $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
+my $db;
+
+GetOptions(
+	'db=s' => \$db_file,
+) or die("Error in command line arguments\n");
+
+$db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
 	{AutoCommit => 0}) or
 	die "connect to db error: " . DBI::errstr;
 
