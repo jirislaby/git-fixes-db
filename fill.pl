@@ -2,6 +2,7 @@
 use strict;
 use DBI qw(:sql_types);
 use Getopt::Long;
+use Term::ANSIColor qw(colored);
 
 my $db_file = 'git-fixes.db';
 my $db;
@@ -88,9 +89,10 @@ for my $file (@ARGV) {
 			$ins_via->execute($via) if (defined $via);
 
 			print "\tprod=$prod\n";
-			if (!$ins->execute($sha, $via, $subsys, $prod) &&
-					$ins->errstr !~ /UNIQUE constraint failed/) {
-				die "cannot insert: " . $ins->errstr;
+			if (!$ins->execute($via, $sha, $subsys, $prod)) {
+				die "cannot insert: " . $ins->errstr
+					if ($ins->errstr !~ /UNIQUE constraint failed/);
+				print colored("\t\tskipped a dup\n", "yellow")
 			}
 		}
 	}
