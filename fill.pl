@@ -52,7 +52,7 @@ for my $file (@ARGV) {
 
 	die "no subsystem in $file?" unless defined $subsys;
 
-	print "\n==== $subsys ====\n";
+	print colored("\n==== $subsys ====\n", "bright_green");
 
 	my $ins = $db->prepare('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);') or
 		die "cannot prepare subsys";
