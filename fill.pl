@@ -36,8 +36,14 @@ $db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
 	'subsys INTEGER NOT NULL REFERENCES subsys(id), ' .
 	'prod INTEGER NOT NULL REFERENCES prod(id), ' .
 	'via INTEGER REFERENCES via(id), ' .
+	'created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ' .
+	'updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ' .
 	'UNIQUE(sha, prod)) STRICT;') or
 	die "cannot create table fixes";
+$db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
+	'AFTER UPDATE ON fixes ' .
+	'BEGIN UPDATE fixes SET updated=datetime() WHERE id=NEW.id; END;') or
+	die "cannot create trigger fixes_updated";
 
 for my $file (@ARGV) {
 	my $subsys;
