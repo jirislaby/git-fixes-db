@@ -44,6 +44,18 @@ $db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
 	'AFTER UPDATE ON fixes ' .
 	'BEGIN UPDATE fixes SET updated=datetime() WHERE id=NEW.id; END;') or
 	die "cannot create trigger fixes_updated";
+$db->do('CREATE VIEW IF NOT EXISTS fixes_expand AS ' .
+	'SELECT fixes.id, fixes.done, subsys.subsys, prod.prod, shas.sha, via.via ' .
+	'FROM fixes ' .
+	'LEFT JOIN subsys ON fixes.subsys = subsys.id ' .
+	'LEFT JOIN prod ON fixes.prod = prod.id ' .
+	'LEFT JOIN shas ON fixes.sha = shas.id ' .
+	'LEFT JOIN via ON fixes.via = via.id;') or
+	die "cannot create VIEW fixes_expand";
+$db->do('CREATE VIEW IF NOT EXISTS fixes_expand_sorted AS ' .
+	'SELECT * FROM fixes_expand ' .
+	'ORDER BY subsys, prod, id;') or
+	die "cannot create VIEW fixes_expand_sorted";
 
 for my $file (@ARGV) {
 	my $subsys;
