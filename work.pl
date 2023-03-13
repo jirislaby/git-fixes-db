@@ -20,6 +20,10 @@ my %blacklist_prod = (
 		qr@drivers/pci/controller/dwc/pci-imx6.c@ => 'CONFIG_PCI_IMX6=n',
 		qr@drivers/pci/controller/dwc/pci-keystone.c@ => 'CONFIG_PCI_KEYSTONE=n',
 	},
+	'SLE15-SP4' => {
+		qr@drivers/pci/controller/pcie-rcar(?:-host)?.c@ => 'CONFIG_PCIE_RCAR_HOST=n',
+		qr@drivers/pci/controller/pcie-mt7621.c@ => 'CONFIG_PCI_MT7621=n',
+	},
 );
 
 my $oneline = 0;
