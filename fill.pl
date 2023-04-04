@@ -45,7 +45,8 @@ $db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
 	'BEGIN UPDATE fixes SET updated=datetime() WHERE id=NEW.id; END;') or
 	die "cannot create trigger fixes_updated";
 $db->do('CREATE VIEW IF NOT EXISTS fixes_expand AS ' .
-	'SELECT fixes.id, fixes.done, subsys.subsys, prod.prod, shas.sha, via.via ' .
+	'SELECT fixes.id, fixes.done, subsys.subsys, prod.prod, shas.sha, ' .
+		'via.via, fixes.created, fixes.updated ' .
 	'FROM fixes ' .
 	'LEFT JOIN subsys ON fixes.subsys = subsys.id ' .
 	'LEFT JOIN prod ON fixes.prod = prod.id ' .
