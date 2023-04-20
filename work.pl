@@ -115,6 +115,12 @@ sub match_blacklist($) {
 	return $match;
 }
 
+sub gde($) {
+	my $gde = $repo->command_oneline('describe', '--contains', '--exact-match', shift);
+	$gde =~ s/~.*//;
+	return $gde;
+}
+
 sub do_walk() {
 	my $up = $db->prepare('UPDATE fixes SET done = 1 WHERE id = ?');
 
@@ -131,6 +137,14 @@ sub do_walk() {
 			print colored("blacklist:\n", 'bright_green'), "$sha # $match\n";
 		} else {
 			$repo->command_noisy('show', '--color', $sha);
+
+			print colored('Present in:', 'bright_green'), " ", gde($sha), "\n";
+			my @fixes = $repo->command('show', '--pretty=format:%b', '-s', $sha);
+			@fixes = map { /[Ff]ixes:\s+([0-9a-fA-F]+)/ ? ($1) : () } @fixes;
+			foreach my $f (@fixes) {
+				print colored('Fixes:', 'bright_green'), " $f (", gde($f), "):\n";
+				print "git grep $f\n";
+			}
 
 			if (defined $via) {
 				print colored('VIA:', 'bright_green'), " $via\n";
