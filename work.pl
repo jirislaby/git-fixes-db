@@ -11,6 +11,7 @@ my %blacklist = (
 
 my %blacklist_prod = (
 	'SLE12-SP5' => {
+		qr@arch/x86/kernel/apic/bigsmp_32.c@ => 'X86_BIGSMP=n',
 		qr@drivers/pci/controller/pcie-mediatek.c@ => '637cfacae96f not present',
 		qr@drivers/pci/controller/pcie-rcar(?:-host)?.c@ => 'CONFIG_PCIE_RCAR=n',
 		qr@drivers/pci/controller/pcie-rockchip(:?-host)?.c@ => 'CONFIG_PCIE_ROCKCHIP=n',
