@@ -152,7 +152,7 @@ sub do_walk() {
 
 			print colored('Present in:', 'bright_green'), " ", gde($sha), "\n";
 			my @fixes = $repo->command('show', '--pretty=format:%b', '-s', $sha);
-			@fixes = map { /[Ff]ixes:\s+([0-9a-fA-F]+)/ ? ($1) : () } @fixes;
+			@fixes = map { /(?:[Ff]ixes:|[Cc][Cc]:.*stable.*#)\s+([0-9a-fA-F]+)/ ? ($1) : () } @fixes;
 			foreach my $f (@fixes) {
 				print colored('Fixes:', 'bright_green'), " $f (", gde($f), "):\n";
 				print "git grep $f\n";
