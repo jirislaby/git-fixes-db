@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use DBI;
+use Error qw(:try);
 use Getopt::Long;
 use Git;
 use Term::ANSIColor qw(colored);
@@ -116,8 +117,17 @@ sub match_blacklist($) {
 }
 
 sub gde($) {
-	my $gde = $repo->command_oneline('describe', '--contains', '--exact-match', shift);
-	$gde =~ s/~.*//;
+	my $sha = shift;
+	my $gde;
+
+	try {
+		$gde = $repo->command_oneline([ 'describe', '--contains',
+			'--exact-match', $sha ], { STDERR => 0 });
+		$gde =~ s/~.*//;
+	} otherwise {
+		$gde = "no tag yet";
+	};
+
 	return $gde;
 }
 
@@ -130,7 +140,9 @@ sub do_walk() {
 
 		system('clear');
 
-		$sha = $repo->command_oneline('rev-parse', $sha);
+		git_cmd_try {
+			$sha = $repo->command_oneline('rev-parse', $sha);
+		} "cannot find sha '$sha' in your tree";
 
 		my $match = match_blacklist($sha);
 		if (defined $match) {
