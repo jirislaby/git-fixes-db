@@ -123,6 +123,7 @@ sub gde($) {
 	try {
 		$gde = $repo->command_oneline([ 'describe', '--contains',
 			'--exact-match', $sha ], { STDERR => 0 });
+		$gde //= colored("SHA $sha not known", 'red');
 		$gde =~ s/~.*//;
 	} otherwise {
 		$gde = "no tag yet";
