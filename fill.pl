@@ -32,7 +32,7 @@ $db->do('CREATE TABLE IF NOT EXISTS via(id INTEGER PRIMARY KEY, ' .
 	die "cannot create table via";
 $db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
 	'sha INTEGER NOT NULL REFERENCES shas(id), ' .
-	'done INTEGER DEFAULT 0 NOT NULL, ' .
+	'done INTEGER DEFAULT 0 NOT NULL CHECK (done IN (0, 1)), ' .
 	'subsys INTEGER NOT NULL REFERENCES subsys(id), ' .
 	'prod INTEGER NOT NULL REFERENCES prod(id), ' .
 	'via INTEGER REFERENCES via(id), ' .
