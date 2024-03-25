@@ -100,17 +100,25 @@ sub do_oneline() {
 sub match_blacklist($) {
 	my ($sha) = @_;
 	my $match;
-	my @files = $repo->command('show', '--pretty=format:', '--name-only',
-		$sha);
+	my @files = $repo->command('show', '--pretty=format:', '--name-only', $sha);
+
 	for my $file (@files) {
+		my $file_match;
+
 		for my $blh (\%blacklist, $blacklist_prod{$prod}) {
 			for my $bl (keys %{$blh}) {
 				if ($file =~ $bl) {
-					return undef if (defined $match && $match != $$blh{$bl});
-					$match = $$blh{$bl};
+					# matches different bl entries -- suspicious
+					return undef if (defined $file_match && $file_match ne $$blh{$bl});
+					$file_match = $$blh{$bl};
 				}
 			}
 		}
+
+		# only some of the files match -- don't skip
+		return undef if (defined $match && !defined $file_match);
+
+		$match = $file_match;
 	}
 
 	return $match;
