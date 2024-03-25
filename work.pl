@@ -57,7 +57,7 @@ if (scalar @ARGV != 2) {
 		'FROM fixes ' .
 			'JOIN prod ON fixes.prod = prod.id ' .
 			'JOIN subsys ON fixes.subsys = subsys.id ' .
-		'WHERE done != 1 ' .
+		'WHERE done = 0 ' .
 		'GROUP BY fixes.prod, fixes.subsys ' .
 		'HAVING cnt > 0 ' .
 		'ORDER BY subsys.subsys, prod.prod;') or
@@ -85,7 +85,7 @@ my $sel = $db->prepare('SELECT fixes.id, shas.sha, via.via ' .
 	'LEFT JOIN shas ON fixes.sha = shas.id ' .
 	'WHERE fixes.subsys = (SELECT id FROM subsys WHERE subsys = ?) AND ' .
 		'fixes.prod = (SELECT id FROM prod WHERE prod = ?) AND ' .
-		'done != 1 ' .
+		'done = 0 ' .
 	'ORDER BY fixes.id;');
 
 $sel->execute($subsys, $prod);

@@ -40,6 +40,8 @@ $db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
 	'updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ' .
 	'UNIQUE(sha, prod)) STRICT;') or
 	die "cannot create table fixes";
+$db->do('CREATE INDEX IF NOT EXISTS fixes_done ON fixes(done);') or
+	die "cannot create index fixes_done";
 $db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
 	'AFTER UPDATE ON fixes ' .
 	'BEGIN UPDATE fixes SET updated=datetime() WHERE id=NEW.id; END;') or
