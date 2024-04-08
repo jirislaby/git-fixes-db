@@ -29,8 +29,8 @@ my @tables = (
 		'subsys INTEGER NOT NULL REFERENCES subsys(id)',
 		'prod INTEGER NOT NULL REFERENCES prod(id)',
 		'via INTEGER REFERENCES via(id)',
-		'created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
-		'updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+		q/created TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))/,
+		q/updated TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))/,
 		'UNIQUE(sha, prod)' ],
 );
 
@@ -45,7 +45,7 @@ $db->do('CREATE INDEX IF NOT EXISTS fixes_done ON fixes(done);') or
 	die "cannot create index fixes_done";
 $db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
 	'AFTER UPDATE ON fixes ' .
-	'BEGIN UPDATE fixes SET updated=datetime() WHERE id=NEW.id; END;') or
+	q/BEGIN UPDATE fixes SET updated=datetime('now', 'localtime') WHERE id=NEW.id; END;/) or
 	die "cannot create trigger fixes_updated";
 $db->do('CREATE VIEW IF NOT EXISTS fixes_expand AS ' .
 	'SELECT fixes.id, fixes.done, subsys.subsys, prod.prod, shas.sha, ' .
