@@ -18,28 +18,29 @@ $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
 $db->do('PRAGMA foreign_keys = ON;') or
 	die "cannot enable foreign keys";
 
-$db->do('CREATE TABLE IF NOT EXISTS prod(id INTEGER PRIMARY KEY, ' .
-	'prod TEXT NOT NULL UNIQUE) STRICT;') or
-	die "cannot create table fixes";
-$db->do('CREATE TABLE IF NOT EXISTS shas(id INTEGER PRIMARY KEY, ' .
-	'sha TEXT NOT NULL UNIQUE) STRICT; ') or
-	die "cannot create table shas";
-$db->do('CREATE TABLE IF NOT EXISTS subsys(id INTEGER PRIMARY KEY, ' .
-	'subsys TEXT NOT NULL UNIQUE) STRICT;') or
-	die "cannot create table subsys";
-$db->do('CREATE TABLE IF NOT EXISTS via(id INTEGER PRIMARY KEY, ' .
-	'via TEXT NOT NULL UNIQUE) STRICT;') or
-	die "cannot create table via";
-$db->do('CREATE TABLE IF NOT EXISTS fixes(id INTEGER PRIMARY KEY, ' .
-	'sha INTEGER NOT NULL REFERENCES shas(id), ' .
-	'done INTEGER DEFAULT 0 NOT NULL CHECK (done IN (0, 1)), ' .
-	'subsys INTEGER NOT NULL REFERENCES subsys(id), ' .
-	'prod INTEGER NOT NULL REFERENCES prod(id), ' .
-	'via INTEGER REFERENCES via(id), ' .
-	'created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ' .
-	'updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ' .
-	'UNIQUE(sha, prod)) STRICT;') or
-	die "cannot create table fixes";
+my @tables = (
+	[ 'prod', 'id INTEGER PRIMARY KEY', 'prod TEXT NOT NULL UNIQUE' ],
+	[ 'shas', 'id INTEGER PRIMARY KEY', 'sha TEXT NOT NULL UNIQUE' ],
+	[ 'subsys', 'id INTEGER PRIMARY KEY', 'subsys TEXT NOT NULL UNIQUE' ],
+	[ 'via', 'id INTEGER PRIMARY KEY', 'via TEXT NOT NULL UNIQUE' ],
+	[ 'fixes', 'id INTEGER PRIMARY KEY',
+		'sha INTEGER NOT NULL REFERENCES shas(id)',
+		'done INTEGER DEFAULT 0 NOT NULL CHECK (done IN (0, 1))',
+		'subsys INTEGER NOT NULL REFERENCES subsys(id)',
+		'prod INTEGER NOT NULL REFERENCES prod(id)',
+		'via INTEGER REFERENCES via(id)',
+		'created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+		'updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+		'UNIQUE(sha, prod)' ],
+);
+
+foreach my $entry (@tables) {
+	my $name = shift @{$entry};
+	my $desc = join ', ', @{$entry};
+	$db->do("CREATE TABLE IF NOT EXISTS $name($desc) STRICT;") or
+		die "cannot create table '$name'";
+}
+
 $db->do('CREATE INDEX IF NOT EXISTS fixes_done ON fixes(done);') or
 	die "cannot create index fixes_done";
 $db->do('CREATE TRIGGER IF NOT EXISTS fixes_updated ' .
