@@ -69,7 +69,7 @@ for my $file (@ARGV) {
 	while (<$fh>) {
 		s/\R//;
 		last if /^={10,}/;
-		$subsys = $1 if (/^Subject: .* Pending Fixes for (.*)$/);
+		$subsys = $1 if (/^Subject: .* Pending Fixes(?: Update)? for (.*)$/);
 	}
 
 	die "no subsystem in $file?" unless defined $subsys;
