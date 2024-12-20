@@ -65,7 +65,7 @@ if (scalar @ARGV != 2) {
 	$sel->execute();
 	printf "%20s | %20s | %4s | COMMAND\n", "SUBSYS", "PRODUCT", "TODO";
 	while (my $row = $sel->fetchrow_hashref) {
-		printf "%20s | %20s | %4u | %s '%s' '%s'\n",
+		printf "%30s | %20s | %4u | %s '%s' '%s'\n",
 			$$row{subsys}, $$row{prod}, $$row{cnt},
 			$0, $$row{subsys}, $$row{prod};
 	}
