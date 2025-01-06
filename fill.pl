@@ -103,7 +103,7 @@ for my $file (@ARGV) {
 
 		while (<$fh>) {
 			s/\R//;
-			last unless /^\s+Considered for (\S+)(?: (?:via|as fix for) (\S+))?/;
+			last unless /^\s+Considered for (\S+)(?: (?:via|as fix for) (.+))?$/;
 			my $prod = $1;
 			my $via = $2;
 
