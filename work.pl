@@ -13,6 +13,7 @@ my $db_file = 'git-fixes.db';
 my $cfm_db_file = 'conf_file_map.sqlite';
 my $git_linux = '/home/latest/linux';
 my $git_ks = '/home/latest/repos/suse/kernel-source';
+my $git_stable_q = '/home/latest/repos/stable-queue';
 my $db;
 my $cfm_db;
 
@@ -21,6 +22,7 @@ GetOptions(
 	'cfm-db=s' => \$cfm_db_file,
 	'git-linux=s' => \$git_linux,
 	'git-kernel-source=s' => \$git_ks,
+	'git-stable-queue=s' => \$git_stable_q,
 	'oneline' => \$oneline,
 ) or pod2usage(2);
 
@@ -29,6 +31,7 @@ die "no $cfm_db_file" unless (-e $cfm_db_file);
 
 my $repo_linux = Git->repository(Directory => $git_linux);
 my $repo_ks = Git->repository(Directory => $git_ks);
+my $repo_stable_q = Git->repository(Directory => $git_stable_q);
 
 sub open_db($) {
 	my $db_file = shift;
@@ -83,6 +86,12 @@ my $sel = $db->prepare('SELECT fixes.id, shas.sha, via.via ' .
 		'done = 0 ' .
 	'ORDER BY fixes.id;') or die "cannot prepare";
 
+my $sel_sha = $db->prepare('SELECT 1 ' .
+	'FROM fixes ' .
+	'WHERE sha = (SELECT id FROM shas WHERE sha LIKE ?) AND ' .
+		'prod = (SELECT id FROM prod WHERE prod = ?);') or
+	die "cannot prepare";
+
 my $cfm_sel = $cfm_db->prepare('SELECT config.config ' .
 	'FROM conf_file_map AS map ' .
 	'LEFT JOIN config ON map.config = config.id ' .
@@ -100,8 +109,8 @@ sub do_oneline() {
 	}
 }
 
-sub match_blacklist($$) {
-	my ($sha, $confs) = @_;
+sub match_blacklist($$$) {
+	my ($prod, $sha, $confs) = @_;
 	my $match;
 	my @files = $repo_linux->command('show', '--pretty=format:', '--name-only', $sha);
 
@@ -136,6 +145,40 @@ sub match_blacklist($$) {
 	return $match;
 }
 
+sub check_deps($$$$) {
+	my ($prod, $sha, $via, $deps) = @_;
+	my $retval;
+
+	if (my ($stable_ver) = $via =~ /Stable-([0-9.]+)$/) {
+		try {
+			my @patches = $repo_stable_q->command('grep', '-l', $sha,
+				'--', "queue-$stable_ver/", "releases/$stable_ver.*");
+			@{$deps} = $repo_stable_q->command('grep', '-h', 'Stable-dep-of',
+				'--', @patches);
+			if (my ($dep) = $$deps[0] =~ /Stable-dep-of:\s*([0-9a-f]+)/) {
+				$sel_sha->execute("$dep%", $prod);
+
+				my $ref = $sel_sha->fetchrow_arrayref;
+				$sel_sha->finish;
+				if (!$ref) {
+					$retval = "Stable-dep-of: $dep not included";
+				}
+			}
+		} otherwise { };
+	}
+
+	return $retval;
+}
+
+sub should_blacklist($$$$$) {
+	my ($prod, $sha, $via, $confs, $deps) = @_;
+
+	my $match = match_blacklist($prod, $sha, $confs);
+	return $match if ($match);
+
+	return check_deps($prod, $sha, $via, $deps);
+}
+
 sub gde($) {
 	my $sha = shift;
 	my $gde;
@@ -166,7 +209,8 @@ sub do_walk() {
 		} "cannot find sha '$sha' in your tree";
 
 		my @confs;
-		my $match = match_blacklist($sha, \@confs);
+		my @deps;
+		my $match = should_blacklist($prod, $sha, $via, \@confs, \@deps);
 		if (defined $match) {
 			print colored("blacklist:\n", 'bright_green'), "$sha # $match\n";
 		} else {
@@ -186,6 +230,9 @@ sub do_walk() {
 
 			if (defined $via) {
 				print colored('VIA:', 'bright_green'), " $via\n";
+				foreach my $dep (@deps) {
+					print "\t$dep\n";
+				}
 			}
 			print colored("blacklist:\n", 'bright_green'), "$sha # \n";
 			print colored('susegen', 'bright_green'), " -r 'git-fixes' ~ -1 $sha\n";
