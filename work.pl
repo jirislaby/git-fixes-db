@@ -149,6 +149,8 @@ sub check_deps($$$$) {
 	my ($prod, $sha, $via, $deps) = @_;
 	my $retval;
 
+	return undef unless ($via);
+
 	if (my ($stable_ver) = $via =~ /Stable-([0-9.]+)$/) {
 		try {
 			my @patches = $repo_stable_q->command('grep', '-l', $sha,
