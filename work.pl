@@ -11,9 +11,9 @@ use Term::ANSIColor qw(colored);
 my $oneline = 0;
 my $db_file = 'git-fixes.db';
 my $cfm_db_file = 'conf_file_map.sqlite';
-my $git_linux = '/home/latest/linux';
-my $git_ks = '/home/latest/repos/suse/kernel-source';
-my $git_stable_q = '/home/latest/repos/stable-queue';
+my $git_linux = $ENV{'LINUX_GIT'} // '/home/latest/linux';
+my $git_ks = $ENV{'KSOURCE_GIT'} // '/home/latest/repos/suse/kernel-source';
+my $git_stable_q = $ENV{'STABLE_QUEUE_GIT'} // '/home/latest/repos/stable-queue';
 my $db;
 my $cfm_db;
 
@@ -278,8 +278,9 @@ __END__
 work.pl [options] [subsys product]
 
  Options:
-   --db=file		database to read from
-   --cfm-db=file	database with conf_file_map
-   --git-linux		linux git repo
-   --git-kernel-source	kernel-source git repo
+   --db=file		database to read from [default=git-fixes.db]
+   --cfm-db=file	database with conf_file_map [default=conf_file_map.sqlite]
+   --git-linux		linux git repo [default=ENV{LINUX_GIT}]
+   --git-kernel-source	kernel-source git repo [default=ENV{KSOURCE_GIT}]
+   --git-stable-queue	stable-queue git repo [default=ENV{STABLE_QUEUE_GIT}]
    --oneline		print all TODO commits, one per line
