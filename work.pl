@@ -51,28 +51,28 @@ $cfm_db = open_db($cfm_db_file);
 
 if (scalar @ARGV != 2) {
 	my $sel = $db->prepare('SELECT COUNT(fixes.id) AS cnt, ' .
-		'prod.prod, subsys.subsys ' .
+		'branch.branch, subsys.subsys ' .
 		'FROM fixes ' .
-			'JOIN prod ON fixes.prod = prod.id ' .
+			'JOIN branch ON fixes.branch = branch.id ' .
 			'JOIN subsys ON fixes.subsys = subsys.id ' .
 		'WHERE done = 0 ' .
-		'GROUP BY fixes.prod, fixes.subsys ' .
+		'GROUP BY fixes.branch, fixes.subsys ' .
 		'HAVING cnt > 0 ' .
-		'ORDER BY subsys.subsys, prod.prod;') or
+		'ORDER BY subsys.subsys, branch.branch;') or
 		die "cannot prepare";
 	$sel->execute();
 	printf "%30s | %20s | %4s | COMMAND\n", "SUBSYS", "PRODUCT", "TODO";
 	while (my $row = $sel->fetchrow_hashref) {
 		printf "%30s | %20s | %4u | %s '%s' '%s'\n",
-			$$row{subsys}, $$row{prod}, $$row{cnt},
-			$0, $$row{subsys}, $$row{prod};
+			$$row{subsys}, $$row{branch}, $$row{cnt},
+			$0, $$row{subsys}, $$row{branch};
 	}
 	print "\n";
 	pod2usage(1);
 }
 
 my $subsys = shift @ARGV;
-my $prod = shift @ARGV;
+my $branch = shift @ARGV;
 
 $SIG{INT} = sub { exit 1; };
 $SIG{TERM} = sub { exit 1; };
@@ -82,14 +82,14 @@ my $sel = $db->prepare('SELECT fixes.id, shas.sha, via.via ' .
 	'LEFT JOIN via ON fixes.via = via.id ' .
 	'LEFT JOIN shas ON fixes.sha = shas.id ' .
 	'WHERE fixes.subsys = (SELECT id FROM subsys WHERE subsys = ?) AND ' .
-		'fixes.prod = (SELECT id FROM prod WHERE prod = ?) AND ' .
+		'fixes.branch = (SELECT id FROM branch WHERE branch = ?) AND ' .
 		'done = 0 ' .
 	'ORDER BY fixes.id;') or die "cannot prepare";
 
 my $sel_sha = $db->prepare('SELECT 1 ' .
 	'FROM fixes ' .
 	'WHERE sha = (SELECT id FROM shas WHERE sha LIKE ?) AND ' .
-		'prod = (SELECT id FROM prod WHERE prod = ?);') or
+		'branch = (SELECT id FROM branch WHERE branch = ?);') or
 	die "cannot prepare";
 
 my $cfm_sel = $cfm_db->prepare('SELECT config.config ' .
@@ -100,7 +100,7 @@ my $cfm_sel = $cfm_db->prepare('SELECT config.config ' .
 		'AND dir = (SELECT id FROM dir WHERE dir = ?));') or
 	die "cannot prepare";
 
-$sel->execute($subsys, $prod);
+$sel->execute($subsys, $branch);
 
 sub do_oneline() {
 	while (my $shas = $sel->fetchall_arrayref({ sha => 1 }, 500)) {
@@ -110,7 +110,7 @@ sub do_oneline() {
 }
 
 sub match_blacklist($$$) {
-	my ($prod, $sha, $confs) = @_;
+	my ($branch, $sha, $confs) = @_;
 	my $match;
 	my @files = $repo_linux->command('show', '--pretty=format:', '--name-only', $sha);
 
@@ -119,14 +119,14 @@ sub match_blacklist($$$) {
 		my ($filename, $dir) = fileparse($file);
 		$dir =~ s|/$||;
 
-		$cfm_sel->execute($prod, $filename, $dir);
+		$cfm_sel->execute($branch, $filename, $dir);
 		my @config = $cfm_sel->fetchrow_array;
 		$cfm_sel->finish;
 
 		if (@config) {
 			try {
 				push @{$confs}, map { s/^[^:]+://; $_ }
-					$repo_ks->command('grep', '-E', $config[0] . '=', "origin/$prod",
+					$repo_ks->command('grep', '-E', $config[0] . '=', "origin/$branch",
 					'--', 'config');
 			} otherwise {
 				my $eq_n = $config[0] . '=n';
@@ -146,7 +146,7 @@ sub match_blacklist($$$) {
 }
 
 sub check_deps($$$$) {
-	my ($prod, $sha, $via, $deps) = @_;
+	my ($branch, $sha, $via, $deps) = @_;
 	my $retval;
 
 	return undef unless ($via);
@@ -158,7 +158,7 @@ sub check_deps($$$$) {
 			@{$deps} = $repo_stable_q->command('grep', '-h', 'Stable-dep-of',
 				'--', @patches);
 			if (my ($dep) = $$deps[0] =~ /Stable-dep-of:\s*([0-9a-f]+)/) {
-				$sel_sha->execute("$dep%", $prod);
+				$sel_sha->execute("$dep%", $branch);
 
 				my $ref = $sel_sha->fetchrow_arrayref;
 				$sel_sha->finish;
@@ -173,12 +173,12 @@ sub check_deps($$$$) {
 }
 
 sub should_blacklist($$$$$) {
-	my ($prod, $sha, $via, $confs, $deps) = @_;
+	my ($branch, $sha, $via, $confs, $deps) = @_;
 
-	my $match = match_blacklist($prod, $sha, $confs);
+	my $match = match_blacklist($branch, $sha, $confs);
 	return $match if ($match);
 
-	return check_deps($prod, $sha, $via, $deps);
+	return check_deps($branch, $sha, $via, $deps);
 }
 
 sub gde($) {
@@ -212,7 +212,7 @@ sub do_walk() {
 
 		my @confs;
 		my @deps;
-		my $match = should_blacklist($prod, $sha, $via, \@confs, \@deps);
+		my $match = should_blacklist($branch, $sha, $via, \@confs, \@deps);
 		if (defined $match) {
 			print colored("blacklist:\n", 'bright_green'), "$sha # $match\n";
 		} else {
@@ -277,7 +277,7 @@ __END__
 
 =head1 SYNOPSIS
 
-work.pl [options] [subsys product]
+work.pl [options] [subsys branch]
 
  Options:
    --db=file		database to read from [default=git-fixes.db]

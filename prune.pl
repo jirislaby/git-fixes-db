@@ -28,21 +28,21 @@ $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
 $db->do('PRAGMA foreign_keys = ON;') or
 	die "cannot enable foreign keys";
 
-sub do_prod(@) {
-	my ($prod_id, $prod_name) = @_;
+sub do_branch(@) {
+	my ($branch_id, $branch_name) = @_;
 
-	print colored("=== $prod_name ===\n", "bright_green");
+	print colored("=== $branch_name ===\n", "bright_green");
 
 	my $sel = $db->prepare('SELECT fixes.id, shas.sha ' .
 		'FROM fixes ' .
 		'LEFT JOIN shas ON fixes.sha = shas.id ' .
-		'WHERE fixes.prod = ? ' .
+		'WHERE fixes.branch = ? ' .
 		'ORDER BY fixes.id;');
 
-	$sel->execute($prod_id);
+	$sel->execute($branch_id);
 
 	my $del = $db->prepare('DELETE FROM fixes ' .
-		'WHERE prod = ? AND ' .
+		'WHERE branch = ? AND ' .
 		'fixes.sha = (SELECT id FROM shas WHERE sha = ?);');
 
 	while (my $shas = $sel->fetchall_arrayref({ sha => 1 }, 300)) {
@@ -54,7 +54,7 @@ sub do_prod(@) {
 		try {
 			for my $line ($repo->command('grep', '-E',
 					"Git-commit:\\s+($shas)",
-					"origin/$prod_name", '--', 'patches.*')) {
+					"origin/$branch_name", '--', 'patches.*')) {
 				next unless ($line =~ /^[^:]+:([^:]+):Git-commit:\s+([0-9a-f]{12})/);
 				$git_commits{$2} = $1;
 			}
@@ -65,7 +65,7 @@ sub do_prod(@) {
 		try {
 			for my $line ($repo->command('grep', '-E',
 					"^($shas)",
-					"origin/$prod_name", '--', 'blacklist.conf')) {
+					"origin/$branch_name", '--', 'blacklist.conf')) {
 				next unless ($line =~ /^[^:]+:([^:]+):([0-9a-f]{12})/);
 				$git_commits{$2} = $1;
 			}
@@ -80,14 +80,14 @@ sub do_prod(@) {
 			print colored("\tdropping $sha due to: ", 'yellow'),
 				$git_commits{$sha}, "\n";
 			print colored("\t\tdelete failed\n", "red")
-				if ($del->execute($prod_id, $sha) != 1);
+				if ($del->execute($branch_id, $sha) != 1);
 		}
 	}
 }
 
-my @prods = @{$db->selectall_arrayref('SELECT id, prod FROM prod ORDER BY prod;')};
-for my $prod (@prods) {
-	do_prod(@{$prod});
+my @branches = @{$db->selectall_arrayref('SELECT id, branch FROM branch ORDER BY branch;')};
+for my $branch (@branches) {
+	do_branch(@{$branch});
 }
 
 my $rows = $db->do("DELETE FROM shas WHERE id NOT IN (SELECT sha FROM fixes);");
