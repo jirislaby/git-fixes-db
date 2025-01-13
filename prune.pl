@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use Data::Dumper;
 use DBI;
 use Error qw(:try);
 use Getopt::Long;
@@ -8,7 +7,7 @@ use Git;
 use Term::ANSIColor qw(colored);
 
 my $db_file = 'git-fixes.db';
-my $git_repo = '/home/latest/repos/suse/kernel-source';
+my $git_repo = $ENV{'KSOURCE_GIT'} // '/home/latest/repos/suse/kernel-source';
 my $db;
 
 GetOptions(
@@ -17,7 +16,6 @@ GetOptions(
 ) or die("Error in command line arguments\n");
 
 die "no $db_file" unless (-e $db_file);
-die "no $git_repo" unless (-d "$git_repo/.git");
 
 my $repo = Git->repository(Directory => $git_repo);
 
