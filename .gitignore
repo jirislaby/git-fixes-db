@@ -1,2 +1,5 @@
 .*.sw[p-z]
+conf_file_map.sqlite
+cve-fixes.db
 git-fixes*.db
+
