@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use DBI;
-use Error qw(:try);
+use Feature::Compat::Try;
 use Getopt::Long;
 use Git;
 use Term::ANSIColor qw(colored);
@@ -56,9 +56,9 @@ sub do_branch(@) {
 				next unless ($line =~ /^[^:]+:([^:]+):Git-commit:\s+([0-9a-f]{12})/);
 				$git_commits{$2} = $1;
 			}
-		} catch Git::Error::Command with {
-			#print Dumper(shift), "\n";
-		};
+		} catch ($e) {
+			#print Dumper($e), "\n";
+		}
 
 		try {
 			for my $line ($repo->command('grep', '-E',
@@ -67,9 +67,9 @@ sub do_branch(@) {
 				next unless ($line =~ /^[^:]+:([^:]+):([0-9a-f]{12})/);
 				$git_commits{$2} = $1;
 			}
-		} catch Git::Error::Command with {
-			#print Dumper(shift), "\n";
-		};
+		} catch ($e) {
+			#print Dumper($e), "\n";
+		}
 
 		next unless scalar %git_commits;
 		#print Dumper(\%git_commits);

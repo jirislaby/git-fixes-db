@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use DBI;
-use Error qw(:try);
+use Feature::Compat::Try;
 use File::Basename qw(fileparse);
 use Getopt::Long;
 use Git;
@@ -128,12 +128,12 @@ sub match_blacklist($$$) {
 				push @{$confs}, map { s/^[^:]+://; $_ }
 					$repo_ks->command('grep', '-E', $config[0] . '=', "origin/$branch",
 					'--', 'config');
-			} otherwise {
+			} catch ($e) {
 				my $eq_n = $config[0] . '=n';
 				# matches different bl entries -- suspicious
 				return undef if (defined $file_match && $file_match ne $eq_n);
 				$file_match = $eq_n;
-			};
+			}
 		}
 
 		# only some of the files match -- don't skip
@@ -147,7 +147,6 @@ sub match_blacklist($$$) {
 
 sub check_deps($$$$) {
 	my ($branch, $sha, $via, $deps) = @_;
-	my $retval;
 
 	return undef unless ($via);
 
@@ -157,19 +156,26 @@ sub check_deps($$$$) {
 				'--', "queue-$stable_ver/", "releases/$stable_ver.*");
 			@{$deps} = $repo_stable_q->command('grep', '-h', 'Stable-dep-of',
 				'--', @patches);
-			if (my ($dep) = $$deps[0] =~ /Stable-dep-of:\s*([0-9a-f]+)/) {
-				$sel_sha->execute("$dep%", $branch);
+		} catch ($e) {
+			return undef;
+		}
+		if (my ($dep) = $$deps[0] =~ /Stable-dep-of:\s*([0-9a-f]+)/) {
+			$sel_sha->execute("$dep%", $branch);
 
-				my $ref = $sel_sha->fetchrow_arrayref;
-				$sel_sha->finish;
-				if (!$ref) {
-					$retval = "Stable-dep-of: $dep not included";
+			my $ref = $sel_sha->fetchrow_arrayref;
+			$sel_sha->finish;
+			if (!$ref) {
+				try {
+					$repo_ks->command('grep', $dep, "origin/$branch", '--',
+						'patches.suse/', 'blacklist.conf');
+				} catch ($e) {
+					return "Stable-dep-of: $dep not included";
 				}
 			}
-		} otherwise { };
+		}
 	}
 
-	return $retval;
+	return undef;
 }
 
 sub should_blacklist($$$$$) {
@@ -183,18 +189,17 @@ sub should_blacklist($$$$$) {
 
 sub gde($) {
 	my $sha = shift;
-	my $gde;
 
 	try {
-		$gde = $repo_linux->command_oneline([ 'describe', '--contains',
+		my $gde = $repo_linux->command_oneline([ 'describe', '--contains',
 			'--exact-match', $sha ], { STDERR => 0 });
 		$gde //= colored("SHA $sha not known", 'red');
 		$gde =~ s/~.*//;
-	} otherwise {
-		$gde = "no tag yet";
-	};
 
-	return $gde;
+		return $gde;
+	} catch ($e) {
+		return "no tag yet";
+	}
 }
 
 sub do_walk() {
