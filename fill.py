@@ -2,6 +2,7 @@
 import argparse
 from contextlib import closing
 import os
+import pprint
 import re
 import sqlite3
 import sys
@@ -47,7 +48,7 @@ def create_tables(cur):
         ORDER BY subsys, branch, id;''')
 
 def import_subsys_lines(cur, subsys_name, lines):
-    subject_pattern = re.compile(r'Subject: .* Pending Fixes(?: Update)? for (?P<subsys>.*)')
+    subject_pattern = re.compile(r'Subject: .* Pending Fixes(?: Update)? \([^)]+\) for (?P<subsys>.*)')
     sha_pattern = re.compile(r'^(?P<sha>[a-f0-9]{12})')
     considered_pattern = re.compile(r'\s+Considered for (?P<branch>\S+)(?: (?:via|as fix for) (?P<via>.+))?')
 
@@ -63,6 +64,7 @@ def import_subsys_lines(cur, subsys_name, lines):
             continue
 
     if subsys is None:
+        pprint.pp(lines)
         raise Exception(f"No subsystem for '{subsys_name}'?")
 
     cur.execute('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);', (subsys, ))
