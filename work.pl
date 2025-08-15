@@ -243,6 +243,7 @@ sub do_walk() {
 			}
 			print colored("blacklist:\n", 'bright_green'), "$sha # \n";
 			print colored('susegen', 'bright_green'), " -r 'git-fixes' ~ -1 $sha\n";
+			print colored('exportpatch', 'bright_green'), " -fwsnd ~ -F 'git-fixes' $sha\n";
 		}
 
 		print colored('Mark as done? [y/N/q] ', 'bold bright_red');
