@@ -7,7 +7,7 @@ use Git;
 use Term::ANSIColor qw(colored);
 
 my $db_file = 'git-fixes.db';
-my $git_repo = $ENV{'KSOURCE_GIT'} // '/home/latest/repos/suse/kernel-source';
+my $git_repo = $ENV{'KSOURCE_GIT'};
 my $db;
 
 GetOptions(

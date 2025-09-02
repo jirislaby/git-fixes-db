@@ -11,9 +11,9 @@ use Term::ANSIColor qw(colored);
 my $oneline = 0;
 my $db_file = 'git-fixes.db';
 my $cfm_db_file = 'conf_file_map.sqlite';
-my $git_linux = $ENV{'LINUX_GIT'} // '/home/latest/linux';
-my $git_ks = $ENV{'KSOURCE_GIT'} // '/home/latest/repos/suse/kernel-source';
-my $git_stable_q = $ENV{'STABLE_QUEUE_GIT'} // '/home/latest/repos/stable-queue';
+my $git_linux = $ENV{'LINUX_GIT'};
+my $git_ks = $ENV{'KSOURCE_GIT'};
+my $git_stable_q = $ENV{'STABLE_QUEUE_GIT'};
 my $db;
 my $cfm_db;
 
