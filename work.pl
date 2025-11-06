@@ -3,6 +3,7 @@ use strict;
 use DBI;
 use Feature::Compat::Try;
 use File::Basename qw(fileparse);
+use File::HomeDir;
 use Getopt::Long;
 use Git;
 use Pod::Usage qw(pod2usage);
@@ -10,7 +11,7 @@ use Term::ANSIColor qw(colored);
 
 my $oneline = 0;
 my $db_file = 'git-fixes.db';
-my $cfm_db_file = 'conf_file_map.sqlite';
+my $cfm_db_file = File::HomeDir->my_home . '/.cache/suse-get-maintainers/conf_file_map.sqlite';
 my $git_linux = $ENV{'LINUX_GIT'};
 my $git_ks = $ENV{'KSOURCE_GIT'};
 my $git_stable_q = $ENV{'STABLE_QUEUE_GIT'};
@@ -28,16 +29,17 @@ GetOptions(
 
 die "no $db_file" unless (-e $db_file);
 die "no $cfm_db_file" unless (-e $cfm_db_file);
+die "old $cfm_db_file" if (-M $cfm_db_file > 7);
 
 my $repo_linux = Git->repository(Directory => $git_linux);
 my $repo_ks = Git->repository(Directory => $git_ks);
 my $repo_stable_q = Git->repository(Directory => $git_stable_q);
 
-sub open_db($) {
-	my $db_file = shift;
+sub open_db($$) {
+	my ($db_file, $ro) = @_;
 
 	my $db = DBI->connect("dbi:SQLite:dbname=$db_file", undef, undef,
-		{AutoCommit => 0}) or
+		{AutoCommit => 0, ReadOnly => $ro}) or
 		die "connect to db error: " . DBI::errstr;
 
 	$db->do('PRAGMA foreign_keys = ON;') or
@@ -46,8 +48,8 @@ sub open_db($) {
 	return $db;
 }
 
-$db = open_db($db_file);
-$cfm_db = open_db($cfm_db_file);
+$db = open_db($db_file, 0);
+$cfm_db = open_db($cfm_db_file, 1);
 
 if (scalar @ARGV != 2) {
 	my $sel = $db->prepare('SELECT COUNT(fixes.id) AS cnt, ' .
