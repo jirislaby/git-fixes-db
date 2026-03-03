@@ -80,9 +80,11 @@ def import_subsys_lines(cur, subsys_name, lines):
             cur.execute('INSERT OR IGNORE INTO shas(sha) VALUES (?);', (sha, ))
             in_heading = False
         else:
+            if not len(line):
+                in_heading = True
+                continue
             m = considered_pattern.fullmatch(line)
             if not m:
-                in_heading = True
                 continue
             branch = m.group('branch')
             via = m.group('via')
