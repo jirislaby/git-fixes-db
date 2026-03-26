@@ -28,8 +28,13 @@ GetOptions(
 ) or pod2usage(2);
 
 die "no $db_file" unless (-e $db_file);
-die "no $cfm_db_file" unless (-e $cfm_db_file);
-die "old $cfm_db_file" if (-M $cfm_db_file > 7);
+
+if (!-e $cfm_db_file || -M $cfm_db_file > 7) {
+	print "Refreshing DB\n";
+	system(qw/suse-get-maintainers -r -o linus/) == 0 or
+		die "s-g-m -r failed: $?";
+	print "\n";
+}
 
 my $repo_linux = Git->repository(Directory => $git_linux);
 my $repo_ks = Git->repository(Directory => $git_ks);
