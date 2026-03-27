@@ -1,0 +1,87 @@
+#!/usr/bin/python3
+import argparse
+import os
+from pathlib import Path
+import re
+import sqlite3
+from termcolor import colored,cprint
+
+from slgit import SlGit
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--db-file', default='git-fixes.db')
+parser.add_argument('--git-kernel-source', default=os.environ['KSOURCE_GIT'])
+args = parser.parse_args()
+
+db_file = Path(args.db_file)
+if not db_file.exists():
+    raise RuntimeError(f"no DB at: {db_file}")
+
+repo_ks = SlGit(args.git_kernel_source)
+
+def do_branch(db: sqlite3.Connection, branch_id: int, branch_name: str):
+    cprint(f"=== {branch_name} ===", "light_green");
+
+    cur = db.execute('''SELECT shas.sha
+            FROM fixes
+            LEFT JOIN shas ON fixes.sha = shas.id
+            WHERE fixes.branch = :branch
+            ORDER BY fixes.id;''', { 'branch': branch_id });
+
+    re_commit1 = re.compile(r'[^:]+:([^:]+):Git-commit:\s+([0-9a-f]{12})')
+    re_commit2 = re.compile(r'[^:]+:([^:]+):([0-9a-f]{12})')
+
+    while shas := cur.fetchmany(size=300):
+        git_commits = {}
+        shas = [ row['sha'] for row in shas ]
+        shas = '|'.join(shas)
+
+        try:
+            for line in repo_ks.multiline('grep', '-E', f"Git-commit:\\s+({shas})",
+                                 f"origin/{branch_name}", '--', 'patches.*'):
+                if m := re_commit1.match(line):
+                    git_commits[m.group(2)] = m.group(1)
+        except:
+            pass
+
+        try:
+            for line in repo_ks.multiline('grep', '-E', f"^({shas})", f"origin/{branch_name}", '--',
+                                          'blacklist.conf'):
+                if m := re_commit2.match(line):
+                    git_commits[m.group(2)] = m.group(1)
+        except:
+            pass
+
+        if not git_commits:
+            continue
+
+        for (sha, patch) in iter(git_commits.items()):
+            print(colored(f"\tdropping {sha} due to: ", 'yellow'), patch)
+            cur_del = db.execute('''DELETE FROM fixes
+                       WHERE branch = :branch AND
+                           fixes.sha = (SELECT id FROM shas WHERE sha = :sha);''',
+                                 { 'branch': branch_id, 'sha': sha })
+            if cur_del.rowcount != 1:
+                cprint("\t\tdelete failed", "red")
+
+with sqlite3.connect(db_file) as db:
+    db.row_factory = sqlite3.Row
+    db.execute('PRAGMA foreign_keys = ON;')
+    cursor = db.cursor()
+
+    for row in cursor.execute('SELECT id, branch FROM branch ORDER BY branch;'):
+        do_branch(db, row['id'], row['branch'])
+
+    cursor.execute("DELETE FROM shas WHERE id NOT IN (SELECT sha FROM fixes);")
+    if cursor.rowcount > 0:
+        print(f"Dropped {cursor.rowcount} shas")
+
+    cursor.execute("DELETE FROM via WHERE id NOT IN (SELECT via FROM fixes WHERE via IS NOT NULL);")
+    if cursor.rowcount > 0:
+        print(f"Dropped {cursor.rowcount} vias")
+
+    cursor.execute("DELETE FROM branch WHERE id NOT IN (SELECT branch FROM fixes);")
+    if cursor.rowcount > 0:
+        print(f"Dropped {cursor.rowcount} branches")
+
+    db.commit()
