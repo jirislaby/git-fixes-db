@@ -1,0 +1,30 @@
+#!/usr/bin/python3
+import argparse
+import os
+from pathlib import Path
+import sys
+
+from fixes import Fixes
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--db-file', default='git-fixes.db')
+parser.add_argument('-d', '--cfm-db-file', default=Path('~/.cache/suse-get-maintainers/conf_file_map.sqlite').expanduser())
+parser.add_argument('--git-linux', default=os.environ['LINUX_GIT'])
+parser.add_argument('--git-kernel-source', default=os.environ['KSOURCE_GIT'])
+parser.add_argument('--git-stable-queue', default=os.environ['STABLE_QUEUE_GIT'])
+parser.add_argument('--oneline', action='store_true')
+parser.add_argument('subsys', nargs='?')
+parser.add_argument('branch', nargs='?')
+args = parser.parse_args()
+
+fixes = Fixes(args.git_linux, args.git_kernel_source, args.git_stable_queue, args.db_file,
+              args.cfm_db_file)
+
+if not args.branch:
+    fixes.overview(sys.argv[0])
+    print('')
+    parser.print_help();
+elif args.oneline:
+    fixes.oneline(args.subsys, args.branch)
+else:
+    fixes.full(args.subsys, args.branch)
