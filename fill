@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import argparse
-from contextlib import closing
 import os
 import pprint
 import re
@@ -117,10 +116,10 @@ parser.add_argument('-d', '--db-file', default='git-fixes.db')
 parser.add_argument('subsys', nargs='+')
 args = parser.parse_args()
 
-with closing(sqlite3.connect(args.db_file)) as db:
+with sqlite3.connect(args.db_file) as db:
     db.execute('PRAGMA foreign_keys = ON;')
-    with closing(db.cursor()) as cursor:
-        create_tables(cursor)
-        for subsys in args.subsys:
-            import_subsys(cursor, subsys)
+    cursor = db.cursor()
+    create_tables(cursor)
+    for subsys in args.subsys:
+        import_subsys(cursor, subsys)
     db.commit()
