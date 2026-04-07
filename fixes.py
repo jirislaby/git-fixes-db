@@ -45,7 +45,7 @@ class Fixes:
         if hasattr(self, 'db'):
             self.db.close()
 
-    def _gde(self, sha: str):
+    def _gde(self, sha: str) -> str:
         try:
             res = self.repo_linux.oneline('describe', '--contains', '--exact-match', sha) or \
                 colored(f"SHA {sha} not known", 'red');
@@ -66,7 +66,7 @@ class Fixes:
             print(f"{row['subsys']:>30} | {row['branch']:>20} | {row['cnt']:>4} | {prgname}",
                   f"'{row['subsys']}' '{row['branch']}'")
 
-    def _get_fixes(self, subsys: str):
+    def _get_fixes(self, subsys: str) -> sqlite3.Cursor:
         return self.db.execute('''SELECT fixes.id, shas.sha, via.via
                    FROM fixes
                    LEFT JOIN via ON fixes.via = via.id
@@ -82,6 +82,7 @@ class Fixes:
             self.repo_linux.call('show', '--color', '--oneline', '-s', row['sha'])
 
     def _match_blacklist(self, sha: str):
+        assert self.cfm_cursor is not None
         for fileStr in self.repo_linux.multiline('show', '--pretty=format:', '--name-only', sha):
             file = Path(fileStr)
             self.cfm_cursor.execute('''SELECT config.config, arch.arch, flavor.flavor, cbmap.value
@@ -112,7 +113,7 @@ class Fixes:
     #            pass
     #
     #		# only some of the files match -- don't skip
-    #        if not match is None and file_match is None:
+    #        if match is not None and file_match is None:
     #            return None
     #
     #        match = file_match
@@ -132,7 +133,7 @@ class Fixes:
     #			}
     #		}
 
-    def _check_deps(self, sha: str, via: str):
+    def _check_deps(self, sha: str, via: str | None) -> str | None:
         if via is None:
             return None
 
@@ -167,12 +168,12 @@ class Fixes:
 
         return None
 
-    def _should_blacklist(self, sha: str, via: str):
+    def _should_blacklist(self, sha: str, via: str | None) -> str | None:
         self._match_blacklist(sha)
 
         return self._check_deps(sha, via)
 
-    def _full_one(self, row: tuple):
+    def _full_one(self, row: sqlite3.Row) -> bool:
         sha = row['sha']
         via = row['via']
 
@@ -186,7 +187,7 @@ class Fixes:
         self.confs = []
         self.deps = []
         match = self._should_blacklist(sha, via)
-        if not match is None:
+        if match is not None:
             cprint("blacklist:", 'light_green')
             print(sha, '#', match)
         else:
@@ -203,7 +204,7 @@ class Fixes:
                 print(colored('Fixes:', 'light_green'), fix, f"({self._gde(fix)}):")
                 print(f"git grep {fix}")
 
-            if not via is None:
+            if via is not None:
                 print(colored('VIA:', 'light_green'), via)
                 for dep in self.deps:
                     print("\t", dep)

@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 import argparse
-import os
 import pprint
 import re
 import sqlite3
-import sys
 from termcolor import colored
 import urllib.error
 import urllib.request
@@ -52,9 +50,9 @@ def import_subsys_lines(cur, subsys_name, lines):
     considered_pattern = re.compile(r'\s+Considered for (?P<branch>\S+)(?: (?:via|as fix for) (?P<via>.+))?')
 
     subsys = None
+    index = 0
     for index, line in enumerate(lines):
         if line.startswith('=========='):
-            header = False
             break
         m = subject_pattern.fullmatch(line)
         if m:
@@ -69,6 +67,7 @@ def import_subsys_lines(cur, subsys_name, lines):
     cur.execute('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);', (subsys, ))
 
     in_heading = True
+    sha = None
     for line in lines[index + 1:]:
         if in_heading:
             m = sha_pattern.match(line)
