@@ -201,8 +201,9 @@ class Fixes:
                 m = self.re_fixes.search(fix)
                 if not m:
                     continue
+                fix = m.group(1)
                 print(colored('Fixes:', 'light_green'), fix, f"({self._gde(fix)}):")
-                print(f"git grep {fix}")
+                print("git grep", fix)
 
             if via is not None:
                 print(colored('VIA:', 'light_green'), via)
