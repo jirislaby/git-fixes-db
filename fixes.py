@@ -5,18 +5,17 @@ import subprocess
 import time
 from pathlib import Path
 
+from slaby_scripts.git import Git
 from termcolor import colored, cprint
-
-from slgit import SlGit
 
 
 class Fixes:
     def __init__(self, git_linux: os.PathLike, git_kernel_source: os.PathLike,
                  git_stable_queue: os.PathLike, db_file: os.PathLike, cfm_db_file: os.PathLike):
         self.branch = None
-        self.repo_linux = SlGit(git_linux)
-        self.repo_ks = SlGit(git_kernel_source)
-        self.repo_stableq = SlGit(git_stable_queue)
+        self.repo_linux = Git(git_linux)
+        self.repo_ks = Git(git_kernel_source)
+        self.repo_stableq = Git(git_stable_queue)
 
         db_file = Path(db_file)
         if not db_file.exists():

@@ -6,9 +6,8 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+from slaby_scripts.git import Git
 from termcolor import colored, cprint
-
-from slgit import SlGit
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--db-file', default='git-fixes.db')
@@ -19,7 +18,7 @@ db_file = Path(args.db_file)
 if not db_file.exists():
     raise RuntimeError(f"no DB at: {db_file}")
 
-repo_ks = SlGit(args.git_kernel_source)
+repo_ks = Git(args.git_kernel_source)
 
 def do_branch(db: sqlite3.Connection, branch_id: int, branch_name: str):
     cprint(f"=== {branch_name} ===", "light_green");
