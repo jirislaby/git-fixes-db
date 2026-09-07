@@ -1,12 +1,14 @@
 import os
-from pathlib import Path
 import re
 import sqlite3
 import subprocess
 import time
+from pathlib import Path
+
 from termcolor import colored, cprint
 
 from slgit import SlGit
+
 
 class Fixes:
     def __init__(self, git_linux: os.PathLike, git_kernel_source: os.PathLike,
@@ -27,11 +29,11 @@ class Fixes:
         self.cfm_db_file = Path(cfm_db_file)
         if not self.cfm_db_file.exists() or \
                 self.cfm_db_file.stat().st_mtime < time.time() - (7 * 24 * 3600):
-            print('Refreshing DB')
-            result = subprocess.run(['suse-get-maintainers', '-ro', 'linus'])
+            print('Refreshing the DB')
+            result = subprocess.run(['suse-get-maintainers', '-ro', 'linus'], check=True)
             if result.returncode:
                 raise RuntimeError(f"\"{' '.join(result.args)}\" failed with: {result.returncode}")
-            print('')
+            print()
 
         self.cfm_cursor = None
         self.deps = []
@@ -177,7 +179,7 @@ class Fixes:
         sha = row['sha']
         via = row['via']
 
-        subprocess.run(['clear'])
+        subprocess.run(['clear'], check=True)
 
         try:
             sha = self.repo_linux.oneline('rev-parse', sha)

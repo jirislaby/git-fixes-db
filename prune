@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 import argparse
 import os
-from pathlib import Path
 import re
 import sqlite3
-from termcolor import colored,cprint
+import subprocess
+from pathlib import Path
+
+from termcolor import colored, cprint
 
 from slgit import SlGit
 
@@ -41,7 +43,7 @@ def do_branch(db: sqlite3.Connection, branch_id: int, branch_name: str):
                                  f"origin/{branch_name}", '--', 'patches.*'):
                 if m := re_commit1.match(line):
                     git_commits[m.group(2)] = m.group(1)
-        except:
+        except subprocess.CalledProcessError:
             pass
 
         try:
@@ -49,7 +51,7 @@ def do_branch(db: sqlite3.Connection, branch_id: int, branch_name: str):
                                           'blacklist.conf'):
                 if m := re_commit2.match(line):
                     git_commits[m.group(2)] = m.group(1)
-        except:
+        except subprocess.CalledProcessError:
             pass
 
         if not git_commits:

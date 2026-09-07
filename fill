@@ -3,9 +3,11 @@ import argparse
 import pprint
 import re
 import sqlite3
-from termcolor import colored
 import urllib.error
 import urllib.request
+
+from termcolor import colored
+
 
 def create_tables(cur):
     tables = [
@@ -62,7 +64,7 @@ def import_subsys_lines(cur, subsys_name, lines):
 
     if subsys is None:
         pprint.pp(lines)
-        raise Exception(f"No subsystem for '{subsys_name}'?")
+        raise RuntimeError(f"No subsystem for '{subsys_name}'?")
 
     cur.execute('INSERT OR IGNORE INTO subsys(subsys) VALUES (?);', (subsys, ))
 
@@ -98,10 +100,8 @@ def import_subsys_lines(cur, subsys_name, lines):
                     (via, sha, subsys, branch))
             except sqlite3.IntegrityError as e:
                 if e.sqlite_errorname != 'SQLITE_CONSTRAINT_UNIQUE':
-                    raise e
+                    raise
                 print(colored("\t\tskipped a dup", "yellow"))
-            except Exception as e:
-                raise e
 
 def import_subsys(cur, subsys):
     try:

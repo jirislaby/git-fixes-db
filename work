@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import argparse
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from fixes import Fixes
 
@@ -22,7 +22,7 @@ fixes = Fixes(args.git_linux, args.git_kernel_source, args.git_stable_queue, arg
 
 if not args.branch:
     fixes.overview(sys.argv[0])
-    print('')
+    print()
     parser.print_help();
 elif args.oneline:
     fixes.oneline(args.subsys, args.branch)
