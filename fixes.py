@@ -102,6 +102,9 @@ class Fixes:
                                  'dir': str(file.parent) })
 
             for row in self.cfm_cursor:
+                if row['value'] is None:
+                    self.confs.append(row['config'] + "=n")
+                    continue
                 self.confs.append(row['arch'] + '/' + row['flavor'] + ':' + row['config'] + '=' +
                                   row['value'])
 
